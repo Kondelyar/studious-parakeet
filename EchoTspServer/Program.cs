@@ -15,8 +15,9 @@ namespace EchoTspServer
     public class EchoServer
     {
         private readonly int _port;
-        private TcpListener _listener;
+        private TcpListener? _listener; // теперь nullable
         private readonly CancellationTokenSource _cancellationTokenSource;
+
 
         public EchoServer(int port)
         {
@@ -50,32 +51,33 @@ namespace EchoTspServer
         }
 
         private static async Task HandleClientAsync(TcpClient client, CancellationToken token)
-{
-    using (NetworkStream stream = client.GetStream())
-    {
-        try
         {
-            byte[] buffer = new byte[8192];
-            int bytesRead;
-
-            while (!token.IsCancellationRequested &&
-                   (bytesRead = await stream.ReadAsync(buffer.AsMemory(0, buffer.Length), token)) > 0)
+            using (NetworkStream stream = client.GetStream())
             {
-                await stream.WriteAsync(buffer.AsMemory(0, bytesRead), token);
-                Console.WriteLine($"Echoed {bytesRead} bytes to the client.");
+                try
+                {
+                    byte[] buffer = new byte[8192];
+                    int bytesRead;
+
+                    while (!token.IsCancellationRequested &&
+                          (bytesRead = await stream.ReadAsync(buffer.AsMemory(0, buffer.Length), token)) > 0)
+                    {
+                        await stream.WriteAsync(buffer.AsMemory(0, bytesRead), token);
+                        Console.WriteLine($"Echoed {bytesRead} bytes to the client.");
+                    }
+                }
+                catch (Exception ex) when (!(ex is OperationCanceledException))
+                {
+                    Console.WriteLine($"Error: {ex.Message}");
+                }
+                finally
+                {
+                    client.Close();
+                    Console.WriteLine("Client disconnected.");
+                }
             }
         }
-        catch (Exception ex) when (!(ex is OperationCanceledException))
-        {
-            Console.WriteLine($"Error: {ex.Message}");
-        }
-        finally
-        {
-            client.Close();
-            Console.WriteLine("Client disconnected.");
-        }
-    }
-}
+
 
 
         public void Stop()
@@ -90,7 +92,7 @@ namespace EchoTspServer
         {
             EchoServer server = new EchoServer(5000);
 
-            await Task.Run(() => server.StartAsync());
+            Task serverTask = server.StartAsync();
 
             string host = "127.0.0.1";
             int port = 60000;
@@ -104,13 +106,17 @@ namespace EchoTspServer
                 Console.WriteLine("Press 'q' to quit...");
                 while (Console.ReadKey(intercept: true).Key != ConsoleKey.Q)
                 {
+                    // wait
                 }
 
                 sender.StopSending();
                 server.Stop();
                 Console.WriteLine("Sender stopped.");
             }
+
+            await serverTask;
         }
+
 
     }
 
@@ -120,7 +126,7 @@ namespace EchoTspServer
         private readonly string _host;
         private readonly int _port;
         private readonly UdpClient _udpClient;
-        private Timer? _timer;
+        private Timer? _timer; // nullable
         private bool _disposed = false;
         private ushort _i = 0;
 
@@ -184,8 +190,10 @@ namespace EchoTspServer
 
         public void Dispose()
         {
-            Dispose(true);
+            StopSending();
+            _udpClient.Dispose();
             GC.SuppressFinalize(this);
         }
+
     }
 }
