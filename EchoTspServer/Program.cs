@@ -16,8 +16,7 @@ namespace EchoTspServer
     {
         private readonly int _port;
         private TcpListener _listener;
-        private CancellationTokenSource _cancellationTokenSource;
-
+        private readonly CancellationTokenSource _cancellationTokenSource;
 
         public EchoServer(int port)
         {
@@ -50,33 +49,34 @@ namespace EchoTspServer
             Console.WriteLine("Server shutdown.");
         }
 
-        private async Task HandleClientAsync(TcpClient client, CancellationToken token)
+        private static async Task HandleClientAsync(TcpClient client, CancellationToken token)
+{
+    using (NetworkStream stream = client.GetStream())
+    {
+        try
         {
-            using (NetworkStream stream = client.GetStream())
-            {
-                try
-                {
-                    byte[] buffer = new byte[8192];
-                    int bytesRead;
+            byte[] buffer = new byte[8192];
+            int bytesRead;
 
-                    while (!token.IsCancellationRequested && (bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length, token)) > 0)
-                    {
-                        // Echo back the received message
-                        await stream.WriteAsync(buffer, 0, bytesRead, token);
-                        Console.WriteLine($"Echoed {bytesRead} bytes to the client.");
-                    }
-                }
-                catch (Exception ex) when (!(ex is OperationCanceledException))
-                {
-                    Console.WriteLine($"Error: {ex.Message}");
-                }
-                finally
-                {
-                    client.Close();
-                    Console.WriteLine("Client disconnected.");
-                }
+            while (!token.IsCancellationRequested &&
+                   (bytesRead = await stream.ReadAsync(buffer.AsMemory(0, buffer.Length), token)) > 0)
+            {
+                await stream.WriteAsync(buffer.AsMemory(0, bytesRead), token);
+                Console.WriteLine($"Echoed {bytesRead} bytes to the client.");
             }
         }
+        catch (Exception ex) when (!(ex is OperationCanceledException))
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+        finally
+        {
+            client.Close();
+            Console.WriteLine("Client disconnected.");
+        }
+    }
+}
+
 
         public void Stop()
         {
@@ -90,12 +90,11 @@ namespace EchoTspServer
         {
             EchoServer server = new EchoServer(5000);
 
-            // Start the server in a separate task
-            _ = Task.Run(() => server.StartAsync());
+            await Task.Run(() => server.StartAsync());
 
-            string host = "127.0.0.1"; // Target IP
-            int port = 60000;          // Target Port
-            int intervalMilliseconds = 5000; // Send every 3 seconds
+            string host = "127.0.0.1";
+            int port = 60000;
+            int intervalMilliseconds = 5000;
 
             using (var sender = new UdpTimedSender(host, port))
             {
@@ -105,7 +104,6 @@ namespace EchoTspServer
                 Console.WriteLine("Press 'q' to quit...");
                 while (Console.ReadKey(intercept: true).Key != ConsoleKey.Q)
                 {
-                    // Just wait until 'q' is pressed
                 }
 
                 sender.StopSending();
@@ -113,6 +111,7 @@ namespace EchoTspServer
                 Console.WriteLine("Sender stopped.");
             }
         }
+
     }
 
 
@@ -121,7 +120,8 @@ namespace EchoTspServer
         private readonly string _host;
         private readonly int _port;
         private readonly UdpClient _udpClient;
-        private Timer _timer;
+        private Timer? _timer;
+        private bool _disposed = false;
 
         public UdpTimedSender(string host, int port)
         {
@@ -130,48 +130,24 @@ namespace EchoTspServer
             _udpClient = new UdpClient();
         }
 
-        public void StartSending(int intervalMilliseconds)
+        protected virtual void Dispose(bool disposing)
         {
-            if (_timer != null)
-                throw new InvalidOperationException("Sender is already running.");
-
-            _timer = new Timer(SendMessageCallback, null, 0, intervalMilliseconds);
-        }
-
-        ushort i = 0;
-
-        private void SendMessageCallback(object state)
-        {
-            try
+            if (!_disposed)
             {
-                //dummy data
-                Random rnd = new Random();
-                byte[] samples = new byte[1024];
-                rnd.NextBytes(samples);
-                i++;
-
-                byte[] msg = (new byte[] { 0x04, 0x84 }).Concat(BitConverter.GetBytes(i)).Concat(samples).ToArray();
-                var endpoint = new IPEndPoint(IPAddress.Parse(_host), _port);
-
-                _udpClient.Send(msg, msg.Length, endpoint);
-                Console.WriteLine($"Message sent to {_host}:{_port} ");
+                if (disposing)
+                {
+                    _timer?.Dispose();
+                    _udpClient.Dispose();
+                }
+                _disposed = true;
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error sending message: {ex.Message}");
-            }
-        }
-
-        public void StopSending()
-        {
-            _timer?.Dispose();
-            _timer = null;
         }
 
         public void Dispose()
         {
-            StopSending();
-            _udpClient.Dispose();
+            Dispose(true);
+            GC.SuppressFinalize(this);
         }
     }
+
 }
