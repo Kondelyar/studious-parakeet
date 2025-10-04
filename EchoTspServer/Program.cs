@@ -15,8 +15,8 @@ namespace EchoTspServer
     public class EchoServer
     {
         private readonly int _port;
-        private TcpListener _listener;
-        private CancellationTokenSource _cancellationTokenSource;
+        private TcpListener? _listener;
+        private readonly CancellationTokenSource _cancellationTokenSource;
 
 
         public EchoServer(int port)
@@ -50,7 +50,7 @@ namespace EchoTspServer
             Console.WriteLine("Server shutdown.");
         }
 
-        private async Task HandleClientAsync(TcpClient client, CancellationToken token)
+        private static async Task HandleClientAsync(TcpClient client, CancellationToken token)
         {
             using (NetworkStream stream = client.GetStream())
             {
@@ -59,10 +59,10 @@ namespace EchoTspServer
                     byte[] buffer = new byte[8192];
                     int bytesRead;
 
-                    while (!token.IsCancellationRequested && (bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length, token)) > 0)
+                    while (!token.IsCancellationRequested && (bytesRead = await stream.ReadAsync(buffer.AsMemory(0, buffer.Length), token)) > 0)
                     {
                         // Echo back the received message
-                        await stream.WriteAsync(buffer, 0, bytesRead, token);
+                        await stream.WriteAsync(buffer.AsMemory(0, bytesRead), token);
                         Console.WriteLine($"Echoed {bytesRead} bytes to the client.");
                     }
                 }
@@ -121,7 +121,7 @@ namespace EchoTspServer
         private readonly string _host;
         private readonly int _port;
         private readonly UdpClient _udpClient;
-        private Timer _timer;
+        private Timer? _timer;
 
         public UdpTimedSender(string host, int port)
         {
@@ -173,5 +173,6 @@ namespace EchoTspServer
             StopSending();
             _udpClient.Dispose();
         }
+
     }
 }
