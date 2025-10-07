@@ -160,5 +160,7 @@ public class NetSdrClientTests
         // Assert
         streamMock.Verify(s => s.WriteAsync(It.IsAny<byte[]>(), 0, inputBytes.Length, It.IsAny<CancellationToken>()), Times.Once);
     }
+
+
     //TODO: cover the rest of the NetSdrClient code here
 }
