@@ -73,6 +73,7 @@ namespace NetSdrClientApp.Networking
             }
         }
 
+        [ExcludeFromCodeCoverage]
         public async Task SendMessageAsync(byte[] data)
         {
             await SendDataAsync(data);

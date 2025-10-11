@@ -47,6 +47,7 @@ public class UdpClientWrapper : IUdpClient
         }
     }
 
+    [ExcludeFromCodeCoverage]
     public void StopListening()
     {
         SafeStop("Stopped listening for UDP messages.");
