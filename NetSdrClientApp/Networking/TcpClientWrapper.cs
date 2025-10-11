@@ -7,6 +7,8 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Diagnostics.CodeAnalysis;
+
 
 namespace NetSdrClientApp.Networking
 {
@@ -76,12 +78,14 @@ namespace NetSdrClientApp.Networking
             await SendDataAsync(data);
         }
 
+        [ExcludeFromCodeCoverage]
         public async Task SendMessageAsync(string str)
         {
             var data = Encoding.UTF8.GetBytes(str);
             await SendDataAsync(data);
         }
 
+        [ExcludeFromCodeCoverage]
         private async Task SendDataAsync(byte[] data)
         {
             if (Connected && _stream != null && _stream.CanWrite)

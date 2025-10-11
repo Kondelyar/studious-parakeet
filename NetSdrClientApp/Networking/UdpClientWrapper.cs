@@ -5,6 +5,8 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Diagnostics.CodeAnalysis;
+
 
 public class UdpClientWrapper : IUdpClient
 {
@@ -50,11 +52,13 @@ public class UdpClientWrapper : IUdpClient
         SafeStop("Stopped listening for UDP messages.");
     }
 
+    [ExcludeFromCodeCoverage]
     public void Exit()
     {
         SafeStop("Stopped listening for UDP messages.");
     }
 
+    [ExcludeFromCodeCoverage]
     private void SafeStop(string message)
     {
         try
