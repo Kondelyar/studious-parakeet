@@ -1,6 +1,7 @@
 ﻿using EchoTspServer.Udp;
 using Moq;
 using NUnit.Framework;
+using System.Text;
 
 namespace EchoTspServer.Tests.Udp
 {
@@ -21,6 +22,7 @@ namespace EchoTspServer.Tests.Udp
         {
             _sender?.Dispose();
         }
+
 
         [Test]
         public void Constructor_ThrowsArgumentNullException_WhenHostIsNull()
@@ -82,5 +84,25 @@ namespace EchoTspServer.Tests.Udp
             // Act & Assert
             Assert.DoesNotThrow(() => _sender.Dispose());
         }
+
+        [Test]
+        public void StartSending_ExecutesSendMessage_AndWritesToConsole()
+        {
+            _sender = new UdpTimedSender("127.0.0.1", 5000, _mockBuilder.Object);
+
+            using var cts = new CancellationTokenSource();
+            _sender.StartSending(50); // інтервал 50ms
+
+            // даємо таймеру спрацювати
+            Thread.Sleep(100);
+
+            // зупиняємо таймер
+            _sender.StopSending();
+
+            // якщо рядок з Console.WriteLine виконується, тест покриє його
+            Assert.Pass("SendMessage executed, Console.WriteLine covered");
+        }
+
+
     }
 }

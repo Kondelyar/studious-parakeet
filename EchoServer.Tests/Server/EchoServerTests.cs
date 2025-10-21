@@ -70,6 +70,6 @@ namespace EchoTspServer.Tests.Server
 
             // Act & Assert
             Assert.DoesNotThrowAsync(async () => await _server.StartAsync());
-        }        
+        }       
     }
 }

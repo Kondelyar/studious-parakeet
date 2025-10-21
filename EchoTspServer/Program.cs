@@ -1,4 +1,7 @@
-﻿using System.Net;
+﻿using System;
+using System.IO;
+using System.Net;
+using System.Threading.Tasks;
 using EchoTspServer.Handlers;
 using EchoTspServer.Infrastructure;
 using EchoTspServer.Server;
@@ -11,35 +14,46 @@ namespace EchoTspServer
     /// </summary>
     public class Program
     {
-        public static async Task Main(string[] args)
+        // стандартна точка входу Main без додаткових параметрів
+        public static void Main(string[] args)
         {
-            // Setup dependencies
+            // викликаємо асинхронний метод синхронно
+            MainInternal(args, Console.In).GetAwaiter().GetResult();
+        }
+
+        // тестований метод з параметром input
+        public static async Task MainInternal(string[] args, TextReader input)
+        {
+            input ??= Console.In;
+
             var listener = new TcpListenerWrapper(IPAddress.Any, 5000);
             var clientHandler = new EchoClientHandler();
             var server = new EchoServer(listener, clientHandler);
 
-            // Start the server
             _ = Task.Run(() => server.StartAsync());
 
-            // Setup UDP sender
             string host = "127.0.0.1";
             int port = 60000;
             int intervalMilliseconds = 5000;
 
-            using (var sender = new UdpTimedSender(host, port))
+            using var sender = new UdpTimedSender(host, port);
+            sender.StartSending(intervalMilliseconds);
+
+            await WaitForQuitKey(input);
+
+            sender.StopSending();
+            server.Stop();
+            Console.WriteLine("Sender stopped.");
+        }
+
+        // метод для очікування натискання Q
+        public static async Task WaitForQuitKey(TextReader input)
+        {
+            while (true)
             {
-                Console.WriteLine("Press any key to stop sending...");
-                sender.StartSending(intervalMilliseconds);
-
-                Console.WriteLine("Press 'q' to quit...");
-                while (Console.ReadKey(intercept: true).Key != ConsoleKey.Q)
-                {
-                    // Wait until 'q' is pressed
-                }
-
-                sender.StopSending();
-                server.Stop();
-                Console.WriteLine("Sender stopped.");
+                var line = await input.ReadLineAsync();
+                if (line?.ToUpper() == "Q") break;
+                await Task.Delay(50);
             }
         }
     }
