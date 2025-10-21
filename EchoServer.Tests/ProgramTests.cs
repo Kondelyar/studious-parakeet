@@ -15,6 +15,8 @@ namespace EchoTspServer.Tests
         {
             using var reader = new StringReader("Q\n");
             await Program.MainInternal(new string[0], reader);
+
+            Assert.Pass();
         }
 
         [Test]
