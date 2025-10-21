@@ -14,7 +14,7 @@ namespace NetSdrClientAppTests
                 .That()
                 .ResideInNamespace("NetSdrClientApp")
                 .ShouldNot()
-                .HaveDependencyOn("EchoTspServer")
+                .HaveDependencyOn("EchoTcpServer")
                 .GetResult();
 
             Assert.IsTrue(result.IsSuccessful);
