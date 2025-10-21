@@ -79,9 +79,10 @@ public class UdpClientWrapper : IUdpClient
     {
         var payload = $"{nameof(UdpClientWrapper)}|{_localEndPoint.Address}|{_localEndPoint.Port}";
 
-        using var md5 = MD5.Create();
-        var hash = md5.ComputeHash(Encoding.UTF8.GetBytes(payload));
+        using var sha256 = SHA256.Create();
+        var hash = sha256.ComputeHash(Encoding.UTF8.GetBytes(payload));
 
+        // беремо перші 4 байти для int
         return BitConverter.ToInt32(hash, 0);
     }
 }
