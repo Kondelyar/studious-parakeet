@@ -7,7 +7,7 @@
 [![Duplicated Lines (%)](https://sonarcloud.io/api/project_badges/measure?project=Kondelyar_studious-parakeet&metric=duplicated_lines_density)](https://sonarcloud.io/summary/new_code?id=Kondelyar_studious-parakeet)
 [![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=Kondelyar_studious-parakeet&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=Kondelyar_studious-parakeet)
 [![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=Kondelyar_studious-parakeet&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=Kondelyar_studious-parakeet)
-
+[![Dependabot Updates](https://github.com/Kondelyar/studious-parakeet/actions/workflows/dependabot/dependabot-updates/badge.svg)](https://github.com/Kondelyar/studious-parakeet/actions/workflows/dependabot/dependabot-updates)
 
 
 
