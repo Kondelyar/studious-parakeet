@@ -74,8 +74,8 @@ namespace EchoTspServer.Tests.Infrastructure
             var acceptedClient = await clientTask;
 
             // Assert
-            Assert.IsNotNull(acceptedClient);
-            Assert.IsTrue(acceptedClient.Connected);
+            Assert.That(acceptedClient, Is.Not.Null);
+            Assert.That(acceptedClient.Connected, Is.True);
 
             acceptedClient.Close();
         }
