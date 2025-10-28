@@ -22,6 +22,25 @@ namespace NetSdrClientApp.Tests
             _port = GetFreePort();
             _listener = new DisposableTcpListener(IPAddress.Loopback, _port);
             _listener.Start();
+
+            // Принимаем клиента в фоне; завершаем приём после таймаута, чтобы CI не зависал.
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    // ждём клиента не дольше 5 секунд
+                    var acceptTask = _listener.AcceptTcpClientAsync();
+                    var completed = await Task.WhenAny(acceptTask, Task.Delay(TimeSpan.FromSeconds(5)));
+                    if (completed == acceptTask)
+                    {
+                        using var tcpClient = await acceptTask; // закроем сразу после подключения
+                    }
+                }
+                catch
+                {
+                    // игнорируем ошибки при закрытии/таймауте
+                }
+            });
         }
 
         [TearDown]
@@ -111,6 +130,9 @@ namespace NetSdrClientApp.Tests
             }
 
             public void Start() => _inner.Start();
+
+            // добавляем публичный асинхронный метод-обёртку
+            public Task<TcpClient> AcceptTcpClientAsync() => _inner.AcceptTcpClientAsync();
 
             public void Dispose()
             {
