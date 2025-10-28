@@ -12,8 +12,7 @@ namespace NetSdrClientApp.Tests
     [TestFixture]
     public class TcpClientWrapperTests
     {
-        [SuppressMessage("Usage", "NUnit3Usage:The field '_listener' should be Disposed in a method annotated with [TearDownAttribute]", Justification = "Dispose handled manually in Teardown")]
-        private TcpListener? _listener;
+        private DisposableTcpListener? _listener;
         private int _port;
         private string _host = "127.0.0.1";
 
@@ -21,34 +20,15 @@ namespace NetSdrClientApp.Tests
         public void Setup()
         {
             _port = GetFreePort();
-            _listener = new TcpListener(IPAddress.Loopback, _port);
+            _listener = new DisposableTcpListener(IPAddress.Loopback, _port);
             _listener.Start();
         }
 
         [TearDown]
         public void Teardown()
         {
-            if (_listener != null)
-            {
-                try
-                {
-                    // зупиняємо TcpListener
-                    _listener.Stop();
-
-                    // явне звільнення внутрішнього сокета
-                    if (_listener.Server != null)
-                    {
-                        _listener.Server.Dispose();
-                    }
-                }
-                catch { }
-                finally
-                {
-                    _listener = null;
-                }
-            }
+            _listener?.Dispose();
         }
-
 
         [ExcludeFromCodeCoverage]
         private int GetFreePort()
@@ -79,8 +59,7 @@ namespace NetSdrClientApp.Tests
         {
             var client = new TcpClientWrapper(_host, _port);
             client.Connect();
-            Assert.That(client.Connected, Is.True); // змінив на True
-
+            Assert.That(client.Connected, Is.True);
             client.Disconnect();
             Assert.That(client.Connected, Is.False);
         }
@@ -89,27 +68,22 @@ namespace NetSdrClientApp.Tests
         public void Connect_Fails_WhenWrongHost()
         {
             var client = new TcpClientWrapper("256.256.256.256", _port);
-
-            using (var sw = new System.IO.StringWriter())
-            {
-                Console.SetOut(sw);
-                client.Connect();
-                string output = sw.ToString();
-                Assert.That(output, Does.Contain("Failed to connect"));
-            }
+            using var sw = new System.IO.StringWriter();
+            Console.SetOut(sw);
+            client.Connect();
+            string output = sw.ToString();
+            Assert.That(output, Does.Contain("Failed to connect"));
         }
 
         [Test]
         public void Disconnect_NoActiveConnection_ShowsMessage()
         {
             var client = new TcpClientWrapper(_host, _port);
-            using (var sw = new System.IO.StringWriter())
-            {
-                Console.SetOut(sw);
-                client.Disconnect();
-                string output = sw.ToString();
-                Assert.That(output, Does.Contain("No active connection"));
-            }
+            using var sw = new System.IO.StringWriter();
+            Console.SetOut(sw);
+            client.Disconnect();
+            string output = sw.ToString();
+            Assert.That(output, Does.Contain("No active connection"));
         }
 
         [Test]
@@ -125,6 +99,27 @@ namespace NetSdrClientApp.Tests
                 await (Task)method.Invoke(client, null)!);
 
             Assert.That(ex.Message, Is.EqualTo("Not connected to a server."));
+        }
+
+        private sealed class DisposableTcpListener : IDisposable
+        {
+            private readonly TcpListener _inner;
+
+            public DisposableTcpListener(IPAddress address, int port)
+            {
+                _inner = new TcpListener(address, port);
+            }
+
+            public void Start() => _inner.Start();
+
+            public void Dispose()
+            {
+                try
+                {
+                    _inner.Stop();
+                }
+                catch { }
+            }
         }
     }
 }
