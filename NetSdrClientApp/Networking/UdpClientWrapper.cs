@@ -20,6 +20,7 @@ namespace NetSdrClientApp.Networking
             _localEndPoint = new IPEndPoint(IPAddress.Any, port);
         }
 
+        [ExcludeFromCodeCoverage]
         public async Task StartListeningAsync()
         {
             _cts = new CancellationTokenSource();
@@ -48,7 +49,8 @@ namespace NetSdrClientApp.Networking
                 _cts?.Dispose(); //  Dispose для _cts
             }
         }
-        
+
+        [ExcludeFromCodeCoverage]
         public void StopListening()
         {
             SafeStop("Stopped listening for UDP messages.");

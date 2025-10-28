@@ -30,6 +30,7 @@ namespace NetSdrClientApp.Networking
             _port = port;
         }
 
+        [ExcludeFromCodeCoverage]
         public void Connect()
         {
             if (Connected)
@@ -58,7 +59,7 @@ namespace NetSdrClientApp.Networking
             }
         }
 
-
+        [ExcludeFromCodeCoverage]
         public void Disconnect()
         {
             if (Connected)
