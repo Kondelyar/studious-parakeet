@@ -6,15 +6,17 @@ using EchoTspServer.Handlers;
 using EchoTspServer.Infrastructure;
 using EchoTspServer.Server;
 using EchoTspServer.Udp;
+using System.Diagnostics.CodeAnalysis;
 
 namespace EchoTspServer
 {
     /// <summary>
     /// Entry point for the Echo Server application
     /// </summary>
+  
     public class Program
     {
-        // стандартна точка входу Main без додаткових параметрів
+        [ExcludeFromCodeCoverage]
         public static void Main(string[] args)
         {
             // викликаємо асинхронний метод синхронно

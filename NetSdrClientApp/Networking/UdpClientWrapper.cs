@@ -48,8 +48,7 @@ namespace NetSdrClientApp.Networking
                 _cts?.Dispose(); //  Dispose для _cts
             }
         }
-
-        [ExcludeFromCodeCoverage]
+        
         public void StopListening()
         {
             SafeStop("Stopped listening for UDP messages.");

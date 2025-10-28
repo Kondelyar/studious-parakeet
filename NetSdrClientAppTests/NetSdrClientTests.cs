@@ -16,25 +16,30 @@ public class NetSdrClientTests
     public void Setup()
     {
         _tcpMock = new Mock<ITcpClient>();
-        _tcpMock.Setup(tcp => tcp.Connect()).Callback(() =>
-        {
-            _tcpMock.Setup(tcp => tcp.Connected).Returns(true);
-        });
+        bool isConnected = false;
 
-        _tcpMock.Setup(tcp => tcp.Disconnect()).Callback(() =>
-        {
-            _tcpMock.Setup(tcp => tcp.Connected).Returns(false);
-        });
+        // підключення та стан
+        _tcpMock.Setup(tcp => tcp.Connect()).Callback(() => isConnected = true);
+        _tcpMock.Setup(tcp => tcp.Disconnect()).Callback(() => isConnected = false);
+        _tcpMock.SetupGet(tcp => tcp.Connected).Returns(() => isConnected);
 
-        _tcpMock.Setup(tcp => tcp.SendMessageAsync(It.IsAny<byte[]>())).Callback<byte[]>((bytes) =>
-        {
-            _tcpMock.Raise(tcp => tcp.MessageReceived += null, _tcpMock.Object, bytes);
-        });
+        // надсилання повідомлення - піднімаємо подію асинхронно
+        _tcpMock.Setup(tcp => tcp.SendMessageAsync(It.IsAny<byte[]>()))
+            .Returns(Task.CompletedTask)
+            .Callback<byte[]>((bytes) =>
+            {
+                Task.Run(() => _tcpMock.Raise(tcp => tcp.MessageReceived += null, _tcpMock.Object, bytes));
+            });
 
+        // мок для UDP-клієнта
         _updMock = new Mock<IUdpClient>();
+        _updMock.Setup(udp => udp.StartListeningAsync()).Returns(Task.CompletedTask);
+        _updMock.Setup(udp => udp.StopListening());
 
+        // створюємо NetSdrClient
         _client = new NetSdrClient(_tcpMock.Object, _updMock.Object);
     }
+
 
     [Test]
     public async Task ConnectAsyncTest()
@@ -75,15 +80,37 @@ public class NetSdrClientTests
     [Test]
     public async Task StartIQNoConnectionTest()
     {
+        // Arrange: TCP не підключений
+        _tcpMock.SetupGet(tcp => tcp.Connected).Returns(false);
 
-        //act
-        await _client.StartIQAsync();
+        // Redirect Console safely
+        using var sw = new System.IO.StringWriter();
+        var originalOut = Console.Out;
+        Console.SetOut(sw);
 
-        //assert
-        //No exception thrown
-        _tcpMock.Verify(tcp => tcp.SendMessageAsync(It.IsAny<byte[]>()), Times.Never);
-        _tcpMock.VerifyGet(tcp => tcp.Connected, Times.AtLeastOnce);
+        try
+        {
+            // Act
+            await _client.StartIQAsync();
+
+            // Assert: перевіряємо, що SendMessageAsync не викликався
+            _tcpMock.Verify(tcp => tcp.SendMessageAsync(It.IsAny<byte[]>()), Times.Never);
+            _tcpMock.VerifyGet(tcp => tcp.Connected, Times.AtLeastOnce);
+
+            // Перевіряємо фактичний вихід у консоль
+            var output = sw.ToString();
+            Assert.That(output, Does.Contain("No active connection"));
+        }
+        finally
+        {
+            // Restore Console
+            Console.SetOut(originalOut);
+        }
     }
+
+
+
+
 
     [Test]
     public async Task StartIQTest()
